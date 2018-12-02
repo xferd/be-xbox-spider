@@ -1,31 +1,49 @@
 <?php
 require __DIR__.'/script_init.php';
+require __DIR__.'/common.inc.php';
 define('ALL_GAME_URL', 'https://www.xbox.com/en-US/games/xbox-one/js/xcat-bi-urls.json');
-define('SAVE_PATH', '/data/xbox/bigids');
 
-Log::debug("request bigIDs. url=".ALL_GAME_URL);
+Log::debug("request productIds. url=".ALL_GAME_URL);
 $request = MCurl::curlGetRequest(ALL_GAME_URL);
 $response = $request->sendRequest();
 Log::debug("request done");
 
-$bigIDs = null;
+$productIds = null;
 if (preg_match_all('/"([A-Z0-9]{12})"/', $response, $reg)) {
-    $bigIDs = array_unique($reg[1]);
-    Log::debug("fetch bigIDs ".count($bigIDs));
+    $productIds = array_unique($reg[1]);
+    Log::debug("fetch productIds ".count($productIds));
 }
 
-if (is_null($bigIDs)) {
-    Log::die("fetch bigIDs failed.");
+if (is_null($productIds)) {
+    Log::die("fetch productIds failed.");
 }
 
-$fp = fopen(SAVE_PATH, 'w');
+$fp = fopen(BIGID_PATH, 'w');
 if (false === $fp) {
-    Log::die("open file failed. file=".SAVE_PATH);
+    Log::die("open file failed. file=".BIGID_PATH);
 }
 
-foreach ($bigIDs as $id) {
+foreach ($productIds as $id) {
     fputs($fp, $id."\n");
 }
 fclose($fp);
+
+Log::debug("write to db");
+$db = new DBMysql(Config::rc("database.$.".DBXBOX.".w"))->connect();
+foreach (array_chunk($productIds, 100) as $ids) {
+    foreach ($ids as $id) {
+        $sql = "SELECT ProductId
+                FROM products
+                WHERE ProductId='$id'";
+        $ProductId = $db->rs2value($sql);
+        if (!is_null($ProductId)) {
+            continue;
+        }
+        $arrIns = array(
+            'ProductId' => $id,
+        );
+        $db->insert('products', $arrIns);
+    }
+}
 
 Log::debug("done!");
