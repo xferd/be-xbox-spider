@@ -29,7 +29,8 @@ foreach ($productIds as $id) {
 fclose($fp);
 
 Log::debug("write to db");
-$db = new DBMysql(Config::rc("database.$.".DBXBOX.".w"))->connect();
+$db = new DBMysql(Config::rc("database.$.".DBXBOX.".w"));
+$db->connect();
 foreach (array_chunk($productIds, 100) as $ids) {
     foreach ($ids as $id) {
         $sql = "SELECT ProductId
