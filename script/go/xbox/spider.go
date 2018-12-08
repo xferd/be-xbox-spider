@@ -2,8 +2,6 @@ package xbox
 
 import (
     "net/http"
-    // "net/url"
-    // "io/ioutil"
     "io"
     "bufio"
     "os"
@@ -20,8 +18,7 @@ var (
 )
 
 const (
-    URLFormat = "https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=%s&market=%s&languages=%s&MS-CV=DAU1mcuxoWMMp+F.1"
-    productIDListFile = "/data/xbox/id/bigids"
+
 )
 
 func init() {
@@ -35,7 +32,7 @@ func init() {
 }
 
 func (ch ProductIDChan)walkAll() {
-    fp, err := os.Open(productIDListFile)
+    fp, err := os.Open(ProductIDListFile)
     if nil != err {
         panic(err)
     }
