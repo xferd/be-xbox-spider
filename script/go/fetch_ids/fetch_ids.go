@@ -40,5 +40,7 @@ func main() {
 			id := match[1]
 			fp.Write([]byte(id + "\n"))
 		}
+	} else {
+		log.Fatalf("no id found")
 	}
 }

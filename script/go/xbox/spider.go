@@ -5,12 +5,13 @@ import (
     "io"
     "bufio"
     "os"
-    // "hash/crc32"
     "fmt"
-    // "log"
+    "log"
+    "io/ioutil"
 )
 
 type ProductIDChan chan ProductID
+type Bag ProductIDList
 
 var (
     client http.Client
@@ -32,44 +33,64 @@ func init() {
 }
 
 func (ch ProductIDChan)walkAll() {
-    fp, err := os.Open(ProductIDListFile)
-    if nil != err {
-        panic(err)
-    }
-    defer fp.Close()
-
-    rd := bufio.NewReader(fp)
     go func() {
+        fp, err := os.Open(ProductIDListFile)
+        if nil != err {
+            panic(err)
+        }
+        log.Printf("product id list file opened")
+        defer fp.Close()
+
+        rd := bufio.NewReader(fp)
         for {
-            if line, err := rd.ReadString('\n'); nil == err {
-                if nil != err || io.EOF == err {
-                    break
-                }
+            if line, _, err := rd.ReadLine(); nil == err || io.EOF != err {
+                log.Printf("read line: %s", line)
                 ch <- ProductID(line)
+            } else {
+                log.Printf("%+v", err)
+                break
             }
         }
+        close(ch)
     }()
 }
 
 func Crawl() {
+    log.Printf("crawling")
     idChan.walkAll()
+    var max, cnt = 10, 0
+    bag := Bag{}
     for id := range idChan {
+        cnt++
+        bag.Add(id)
+        if cnt >= max {
+            bag.Flush()
+            cnt = 0
+        }
         fmt.Println(id)
     }
+    bag.Flush()
 }
 
-func (ch ProductIDChan)Fetch(productIDs, market, languages string) {
-    uri := fmt.Sprintf(URLFormat, productIDs, market, languages)
-    resp, err := client.Get(uri)
+func (b *Bag)Add(id ProductID) {
+    *b = append(*b, id)
+}
+
+func (b *Bag)Flush() {
+    log.Println(b)
+    theURL := ProductIDList(*b).ProductURL("HK", "zh-cn")
+    log.Println(theURL)
+    resp, err := GetURL(theURL)
     if nil != err {
         panic(err)
     }
-    defer resp.Body.Close()
+    *b = Bag{}
+    WriteProduct(theURL, resp)
+}
 
-    // body, err := ioutil.ReadAll(resp.Body)
-    // if err != nil {
-    //     panic(err)
-    // }
-    // log.Println("fetched url")
-    // ch <- string(body)
+func WriteProduct(url, data string) {
+    md5 := MD5([]byte(url))
+    log.Println(md5)
+    filepath := fmt.Sprintf("%s%s", ProductDir, md5)
+    ioutil.WriteFile(filepath, []byte(data), os.ModePerm)
 }
