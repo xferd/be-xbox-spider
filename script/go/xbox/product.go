@@ -1,8 +1,10 @@
 package xbox
 
 import (
-	"encoding/json"
+	// "encoding/json"
 )
+
+type ProductID string
 
 type LocalizedProperties struct {
 	ProductTitle string
@@ -22,5 +24,5 @@ var (
 )
 
 func (p *Product)Markets() {
-	json.Unmarshal
+	// json.Unmarshal
 }
