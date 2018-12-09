@@ -36,9 +36,14 @@ func main() {
 			panic(err)
 		}
 		defer fp.Close()
+		exists := map[string]struct{}{}
 		for _, match := range founds {
 			id := match[1]
+			if _, in := exists[id]; in {
+				continue
+			}
 			fp.Write([]byte(id + "\n"))
+			exists[id] = struct{}{}
 		}
 	} else {
 		log.Fatalf("no id found")

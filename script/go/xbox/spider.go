@@ -8,6 +8,8 @@ import (
     "fmt"
     "log"
     "io/ioutil"
+
+    "github.com/xferd/golib/crypt"
 )
 
 type ProductIDChan chan ProductID
@@ -89,7 +91,7 @@ func (b *Bag)Flush() {
 }
 
 func WriteProduct(url, data string) {
-    md5 := MD5([]byte(url))
+    md5 := crypt.MD5([]byte(url))
     log.Println(md5)
     filepath := fmt.Sprintf("%s%s", ProductDir, md5)
     ioutil.WriteFile(filepath, []byte(data), os.ModePerm)
