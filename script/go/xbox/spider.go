@@ -1,7 +1,6 @@
 package xbox
 
 import (
-    "net/http"
     "io"
     "bufio"
     "os"
@@ -16,23 +15,11 @@ type ProductIDChan chan ProductID
 type Bag ProductIDList
 
 var (
-    client http.Client
-    idChan ProductIDChan = make(ProductIDChan)
 )
 
 const (
 
 )
-
-func init() {
-    // urli := url.URL{}
-    // urlproxy, _ := urli.Parse("http://10.99.93.35:8080")
-    client = http.Client{
-        Transport: &http.Transport{
-            // Proxy: http.ProxyURL(urlproxy),
-        },
-    }
-}
 
 func (ch ProductIDChan)walkAll() {
     go func() {
@@ -59,8 +46,10 @@ func (ch ProductIDChan)walkAll() {
 
 func Crawl() {
     log.Printf("crawling")
+
+    var idChan ProductIDChan = make(ProductIDChan)
     idChan.walkAll()
-    var max, cnt = 10, 0
+    var max, cnt = 100, 0
     bag := Bag{}
     for id := range idChan {
         cnt++
@@ -72,6 +61,7 @@ func Crawl() {
         fmt.Println(id)
     }
     bag.Flush()
+    wgCrawl.Wait()
 }
 
 func (b *Bag)Add(id ProductID) {
@@ -80,14 +70,29 @@ func (b *Bag)Add(id ProductID) {
 
 func (b *Bag)Flush() {
     log.Println(b)
-    theURL := ProductIDList(*b).ProductURL("HK", "zh-cn")
-    log.Println(theURL)
-    resp, err := GetURL(theURL)
-    if nil != err {
-        panic(err)
+    for _, mkt := range []string{"US"} {
+        _ = mkt
+        for _, id := range ProductIDList(*b) {
+            CrawlGamePage(id, "en-us")
+        }
+        // theURL := ProductIDList(*b).ProductURL(mkt, "zh-cn")
+        // log.Println(theURL)
+        // resp, err := GetURL(theURL)
+        // if nil != err {
+        //     panic(err)
+        // }
+        // // WriteProduct(theURL, resp)
+        // products := ProductsFromJSON(resp)
+        // products.InsertDB()
+        // for _, p := range products.Products {
+            // cc, lp, rp := p.GetPrice1()
+            // if lp == rp {
+            //     continue
+            // }
+            // log.Println(p.ProductId, cc, lp, rp, p.LocalizedProperties[0].ProductTitle)
+        // }
     }
     *b = Bag{}
-    WriteProduct(theURL, resp)
 }
 
 func WriteProduct(url, data string) {
